@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import dotenv
 import httpx2
+import logger
 import translate_history
 from openai import (
     APIConnectionError,
@@ -18,7 +19,9 @@ from openai import (
 
 # 避免导入 translate.py 时读取项目中的 .env。
 with patch.object(dotenv, "load_dotenv", return_value=False):
+    import translate as translate_module
     from translate import (
+        ENV_PATH,
         MAX_TEXT_LENGTH,
         REQUEST_TIMEOUT,
         TranslationAuthError,
@@ -69,9 +72,27 @@ class TestTranslate(unittest.TestCase):
     def test_missing_api_key(self):
         with patch.dict(os.environ, {}, clear=True):
             with patch("translate.OpenAI") as mock_openai:
-                with self.assertRaises(TranslationConfigError):
+                with self.assertRaises(TranslationConfigError) as context:
                     translate("你好", "中文", "英语")
                 mock_openai.assert_not_called()
+        self.assertIn(".env.example", str(context.exception))
+        self.assertIn(str(ENV_PATH.parent), str(context.exception))
+
+    def test_source_mode_uses_project_directory(self):
+        with patch.object(translate_module.sys, "frozen", False, create=True):
+            self.assertEqual(
+                translate_module._application_dir(),
+                Path(translate_module.__file__).resolve().parent,
+            )
+
+    def test_frozen_mode_uses_executable_directory(self):
+        executable = Path("C:/Program Files/AI Translator/AITranslator.exe")
+        with patch.object(translate_module.sys, "frozen", True, create=True):
+            with patch.object(translate_module.sys, "executable", str(executable)):
+                self.assertEqual(
+                    translate_module._application_dir(),
+                    executable.resolve().parent,
+                )
 
     def test_empty_text(self):
         self.assert_input_error("   ", "中文", "英语")
@@ -215,6 +236,20 @@ class TestTranslate(unittest.TestCase):
             make_status_error(APIStatusError, 500),
             TranslationServerError,
         )
+
+
+class TestLogger(unittest.TestCase):
+    def test_windows_log_path_uses_local_app_data(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with patch.dict(
+                os.environ,
+                {"LOCALAPPDATA": temporary_directory},
+                clear=False,
+            ):
+                self.assertEqual(
+                    logger._default_log_path(),
+                    Path(temporary_directory) / "AiTranslator" / "app.log",
+                )
 
 
 class TestCli(unittest.TestCase):

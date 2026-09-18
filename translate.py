@@ -1,4 +1,6 @@
 import os
+import sys
+from pathlib import Path
 
 from dotenv import load_dotenv
 from openai import (
@@ -13,7 +15,15 @@ from openai import (
 from logger import logger
 
 
-load_dotenv()
+def _application_dir():
+    """返回源码目录或打包后的可执行文件目录。"""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent
+
+
+ENV_PATH = _application_dir() / ".env"
+load_dotenv(dotenv_path=ENV_PATH, override=False)
 
 MAX_TEXT_LENGTH = 10_000
 REQUEST_TIMEOUT = 30.0
@@ -74,7 +84,8 @@ def _get_api_key():
 
     if not api_key:
         raise TranslationConfigError(
-            "未配置 DEEPSEEK_API_KEY"
+            "未配置 DEEPSEEK_API_KEY，请将 .env.example 复制为 .env，"
+            f"填写 API Key 后放在程序目录中：{ENV_PATH.parent}"
         )
 
     return api_key

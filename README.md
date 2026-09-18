@@ -36,20 +36,46 @@
 | OpenAI SDK | 调用 DeepSeek API |
 | Tkinter | 创建图形界面 |
 | python-dotenv | 加载环境变量 |
-| unittest | 自动化测试 |
+| pytest / unittest | 自动化测试 |
+| PyInstaller | 生成 Windows 可执行文件 |
 | logging | 应用日志记录 |
 
 ---
 
 ## 📋 环境要求
 
-- Python 3.11 或更高版本
+- 运行 Windows EXE：Windows 10/11 64 位
+- 从源码运行：Python 3.11 或更高版本
 - 有效的 DeepSeek API Key
 - 能够访问 DeepSeek API 的网络环境
 
 ---
 
-## 🚀 快速开始
+## 🚀 使用 Windows EXE
+
+1. 从 GitHub Release 下载 Windows ZIP，并解压到一个文件夹。
+2. 将 `.env.example` 复制一份并改名为 `.env`。
+3. 编辑 `.env`，填写自己的 DeepSeek API Key：
+
+```ini
+DEEPSEEK_API_KEY=your_api_key_here
+```
+
+4. 确保文件位于同一个目录：
+
+```text
+AITranslator.exe
+.env.example
+.env
+```
+
+5. 双击 `AITranslator.exe` 启动程序。
+
+如果没有配置 API Key，程序仍能启动；点击翻译时会显示配置提示。
+
+---
+
+## 🐍 从源码运行
 
 ### 1. 克隆项目
 
@@ -82,7 +108,7 @@ pip install -r requirements.txt
 
 ### 4. 配置 API Key
 
-将 `.env.example` 重命名为 `.env`：
+将 `.env.example` 复制一份并改名为 `.env`：
 
 ```text
 .env.example → .env
@@ -94,7 +120,7 @@ pip install -r requirements.txt
 DEEPSEEK_API_KEY=your_api_key_here
 ```
 
-请不要删除或提交真实 API Key。`.env.example` 是配置模板，`.env` 只用于本地配置。
+不要把真实 API Key 写入 `.env.example` 或提交到 Git。`.env.example` 是配置模板，`.env` 只用于本地配置。源码运行时，`.env` 放在项目根目录；EXE 运行时，`.env` 放在 `AITranslator.exe` 同一目录。
 
 ---
 
@@ -134,10 +160,30 @@ GUI 支持：
 ## 🧪 运行测试
 
 ```bash
-python -m unittest
+python -m pytest -q
 ```
 
 测试使用 Mock，不会调用真实 API；历史记录测试使用临时 SQLite 数据库，不会访问本机真实历史。
+
+---
+
+## 📦 构建 Windows EXE
+
+在 Windows 和 Python 3.11 环境中执行：
+
+```powershell
+python -m pip install -r requirements.txt
+python -m pytest -q
+pyinstaller --clean --noconfirm --onefile --windowed --name AITranslator gui.py
+```
+
+构建成功后，可执行文件位于：
+
+```text
+dist\AITranslator.exe
+```
+
+发布时将 `AITranslator.exe`、`.env.example`、`README.md`、`LICENSE` 和 `assets/gui.png` 一起放入 ZIP。不要把 `.env`、日志、历史数据库或构建缓存放入发布包。
 
 ---
 
@@ -155,8 +201,8 @@ ai-translator/
 ├── assets/
 │   └── gui.png              # GUI 截图
 ├── .env.example             # API 配置示例
-├── .env                    # 本地 API 配置，不提交到 Git
-└── app.log                  # 本地运行日志，不提交到 Git
+├── .env                     # 本地 API 配置，不提交到 Git
+└── LICENSE                  # 开源许可证
 ```
 
 ---
@@ -165,11 +211,13 @@ ai-translator/
 
 ### 没有配置 API Key
 
-请确认已经将 `.env.example` 重命名为 `.env`，并在 `.env` 中填写自己的 API Key：
+请确认已经将 `.env.example` 复制为 `.env`，并在 `.env` 中填写自己的 API Key：
 
 ```ini
 DEEPSEEK_API_KEY=your_api_key_here
 ```
+
+使用 EXE 时，`.env` 必须与 `AITranslator.exe` 位于同一个文件夹。修改 `.env` 后请重新启动程序。
 
 ### API Key 无效
 
@@ -191,6 +239,14 @@ DEEPSEEK_API_KEY=your_api_key_here
 
 在 CLI 的“管理历史记录”菜单或 GUI 的历史按钮区，可以查看、按关键词搜索、删除单条、清空以及导出 CSV。导出使用 UTF-8 BOM 编码，便于 Excel 识别中文；为防止误覆盖，目标 CSV 已存在时会拒绝导出。
 
+### 日志保存在哪里
+
+日志保存在当前用户的数据目录：
+
+- Windows：`%LOCALAPPDATA%\AiTranslator\app.log`
+- macOS：`~/Library/Application Support/AiTranslator/app.log`
+- Linux：`$XDG_DATA_HOME/AiTranslator/app.log`；未设置时为 `~/.local/share/AiTranslator/app.log`
+
 ---
 
 ## 🔐 安全说明
@@ -208,7 +264,6 @@ DEEPSEEK_API_KEY=your_api_key_here
 
 - [ ] 支持更多语言
 - [ ] 优化 GUI 界面
-- [ ] 提供 Windows 可执行文件
 - [ ] 增加更多自动化测试
 - [ ] 支持更多 AI 模型和服务商
 
