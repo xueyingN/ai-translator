@@ -53,11 +53,10 @@ def main():
     result_text = tk.Text(window, height=8, width=60)
     result_text.pack()
 
+    # 历史面板控件先创建但不 pack，默认隐藏，点击"查看历史"后才显示
     history_label = tk.Label(window, text="翻译历史记录")
-    history_label.pack(pady=(10, 0))
 
     history_frame = tk.Frame(window)
-    history_frame.pack(fill=tk.BOTH, expand=True, pady=5)
 
     history_scroll = tk.Scrollbar(history_frame)
     history_scroll.pack(side=tk.RIGHT, fill=tk.Y)
@@ -71,10 +70,16 @@ def main():
     history_scroll.config(command=history_text.yview)
     history_text.config(state=tk.DISABLED)
 
-    PLACEHOLDER = "点击「查看历史」按钮加载历史记录"
-    history_text.config(state=tk.NORMAL)
-    history_text.insert(tk.END, PLACEHOLDER)
-    history_text.config(state=tk.DISABLED)
+    # 历史面板是否已显示
+    history_visible = False
+
+    def show_history_panel():
+        """确保历史面板已显示（pack 到窗口中）。"""
+        nonlocal history_visible
+        if not history_visible:
+            history_label.pack(pady=(10, 0))
+            history_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+            history_visible = True
 
     def render_records(records, empty_message="暂无翻译历史"):
         history_text.config(state=tk.NORMAL)
@@ -97,12 +102,14 @@ def main():
         history_text.see(tk.END)
 
     def load_history():
+        show_history_panel()
         try:
             render_records(load_records())
         except HistoryError as exc:
             messagebox.showerror("读取历史失败", str(exc), parent=window)
 
     def search_history():
+        show_history_panel()
         keyword = simpledialog.askstring("搜索历史", "请输入关键词：", parent=window)
         if keyword is None:
             return
@@ -136,6 +143,7 @@ def main():
             messagebox.showerror("删除失败", str(exc), parent=window)
 
     def clear_history():
+        show_history_panel()
         if not messagebox.askyesno(
             "确认清空",
             "确定清空全部翻译历史吗？此操作不能撤销。",
@@ -200,7 +208,6 @@ def main():
                 parent=window,
             )
             return
-        load_history()
 
     translate_button = tk.Button(window, text="开始翻译", command=do_translate)
     translate_button.pack(pady=(5, 0))
